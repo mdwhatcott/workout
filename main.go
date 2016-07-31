@@ -48,7 +48,7 @@ func parseSegments(file io.Reader) (segments []Segment) {
 	return segments
 }
 
-func parseSegment(line string) *Segment {
+func parseSegment(line string) Segment {
 	parser := NewSegmentLineParser(line)
 	if err := parser.Parse(); err != nil {
 		log.Fatal(err)

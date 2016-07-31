@@ -2,14 +2,16 @@ package main
 
 import (
 	"bufio"
+	"errors"
+	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
-	"flag"
 )
 
 func main() {
@@ -22,7 +24,8 @@ func main() {
 }
 
 func resolveFilename() string {
-	filename := flag.String("file", "segments.txt", "The tab-separated file from which to load workout segments. See README.md for details.")
+	filename := flag.String("file", "segments.txt",
+		"The tab-separated file from which to load workout segments. See README.md for details.")
 	flag.Parse()
 	return *filename
 }
@@ -32,29 +35,69 @@ func loadSegments(filename string) []Segment {
 	if err != nil {
 		log.Fatal(err)
 	}
-	scanner := bufio.NewScanner(file)
-	return parseSegments(scanner)
+	defer file.Close()
+	return parseSegments(file)
 }
 
-func parseSegments(scanner *bufio.Scanner) (segments []Segment) {
+func parseSegments(file io.Reader) (segments []Segment) {
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		fields := strings.Split(line, "\t")
-		warmUp, err := strconv.Atoi(fields[0])
-		if err != nil {
-			log.Fatal(err)
-		}
-		duration, err := strconv.Atoi(fields[1])
-		if err != nil {
-			log.Fatal(err)
-		}
-		title := fields[2]
-		segments = append(segments, NewSegment(warmUp, duration, title))
+		segments = append(segments, parseSegment(scanner.Text()))
 	}
+	handleScannerError(scanner)
+	return segments
+}
+
+func parseSegment(line string) *Segment {
+	parser := NewSegmentLineParser(line)
+	if err := parser.Parse(); err != nil {
+		log.Fatal(err)
+	}
+	return parser.Segment()
+}
+
+func handleScannerError(scanner *bufio.Scanner) {
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
-	return segments
+}
+
+func NewSegmentLineParser(line string) *SegmentLineParser {
+	return &SegmentLineParser{line: strings.TrimSpace(line)}
+}
+
+type SegmentLineParser struct {
+	line string
+	err  error
+
+	fields   []string
+	warmUp   int
+	duration int
+	title    string
+}
+
+func (this *SegmentLineParser) Parse() error {
+	this.fields = strings.Split(this.line, "\t")
+	if len(this.fields) != 3 {
+		return errors.New("Each line must have 3 distinct fields (see README.md for details).")
+	}
+	this.warmUp, this.err = strconv.Atoi(this.fields[0])
+	if this.err != nil {
+		return this.err
+	}
+	this.duration, this.err = strconv.Atoi(this.fields[1])
+	if this.err != nil {
+		return this.err
+	}
+	this.title = strings.TrimSpace(this.fields[2])
+	if len(this.title) == 0 {
+		return errors.New("Please provide a non-blank title.")
+	}
+	return nil
+}
+
+func (this *SegmentLineParser) Segment() Segment {
+	return NewSegment(this.warmUp, this.duration, this.title)
 }
 
 func NewSegment(warmUp, duration int, title string) Segment {

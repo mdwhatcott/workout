@@ -1,5 +1,3 @@
-10	30	Right Forearm Lifts
-10	30	Left Forearm Lifts
 10	30	Jumping Jacks
 10	30	Wall Sit
 10	30	Push Ups

@@ -35,7 +35,7 @@ func loadSegments(filename string) []Segment {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return parseSegments(file)
 }
 
@@ -79,7 +79,7 @@ type SegmentLineParser struct {
 func (this *SegmentLineParser) Parse() error {
 	this.fields = strings.Split(this.line, "\t")
 	if len(this.fields) != 3 {
-		return errors.New("Each line must have 3 distinct fields (see README.md for details).")
+		return errors.New("each line must have 3 distinct fields (see README.md for details)")
 	}
 	this.warmUp, this.err = strconv.Atoi(this.fields[0])
 	if this.err != nil {
@@ -91,7 +91,7 @@ func (this *SegmentLineParser) Parse() error {
 	}
 	this.title = strings.TrimSpace(this.fields[2])
 	if len(this.title) == 0 {
-		return errors.New("Please provide a non-blank title.")
+		return errors.New("please provide a non-blank title")
 	}
 	return nil
 }
@@ -140,6 +140,6 @@ func say(message string) time.Duration {
 	command := exec.Command("say", message)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
-	command.Start()
+	_ = command.Start()
 	return time.Since(started)
 }

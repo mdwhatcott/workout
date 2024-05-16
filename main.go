@@ -9,6 +9,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +26,9 @@ func main() {
 }
 
 func resolveFilename() string {
-	filename := flag.String("file", "segments.txt",
+	_, file, _, _ := runtime.Caller(0)
+	defaultPath := filepath.Join(filepath.Dir(file), "segments.txt")
+	filename := flag.String("file", defaultPath,
 		"The tab-separated file from which to load workout segments. See README.md for details.")
 	flag.Parse()
 	return *filename
